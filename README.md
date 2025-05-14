@@ -22,29 +22,137 @@ Execute the C Program for the desired output.
 
 ## Write a C program that illustrates two processes communicating using shared memory.
 ```
+#include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
-#include <sys/ipc.h>
+#include <string.h>
 #include <sys/shm.h>
 
+#define TEXT_SZ 2048
+
+struct shared_use_st {
+    int written_by_you;
+    char some_text[TEXT_SZ];
+};
+
 int main() {
-    key_t key = ftok("shmfile", 65);
-    int shmid = shmget(key, 1024, 0666 | IPC_CREAT);
-    printf("Shared memory id = %d \n", shmid);
+    int running = 1;
+    void *shared_memory = (void *)0;
+    struct shared_use_st *shared_stuff;
+    char buffer[BUFSIZ];
+    int shmid;
 
-    char* str = (char*)shmat(shmid, (void*)0, 0);
+    // Create shared memory
+    shmid = shmget((key_t)1234, sizeof(struct shared_use_st), 0666 | IPC_CREAT);
+    if (shmid == -1) {
+        fprintf(stderr, "shmget failed\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("Shared memory ID = %d\n", shmid);
 
-    printf("Write Data : ");
-    fgets(str, 1024, stdin);
+    // Attach shared memory
+    shared_memory = shmat(shmid, (void *)0, 0);
+    if (shared_memory == (void *)-1) {
+        fprintf(stderr, "shmat failed\n");
+        exit(EXIT_FAILURE);
+    }
 
-    printf("Data written in memory: %s\n", str);
+    // ✅ Use %p for pointer (portable and safe)
+    printf("Memory attached at %p\n", shared_memory);
 
-    shmdt(str);
+    shared_stuff = (struct shared_use_st *)shared_memory;
 
-    return 0;
+    // Main loop
+    while (running) {
+        while (shared_stuff->written_by_you == 1) {
+            sleep(1);
+            printf("Waiting for client...\n");
+        }
+
+        printf("Enter some text: ");
+        fgets(buffer, BUFSIZ, stdin);
+
+        strncpy(shared_stuff->some_text, buffer, TEXT_SZ);
+        shared_stuff->written_by_you = 1;
+
+        if (strncmp(buffer, "end", 3) == 0) {
+            running = 0;
+        }
+    }
+
+    // Detach shared memory
+    if (shmdt(shared_memory) == -1) {
+        fprintf(stderr, "shmdt failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    exit(EXIT_SUCCESS);
+}
+
+```
+```
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/shm.h>
+
+#define TEXT_SZ 2048
+
+struct shared_use_st {
+    int written_by_you;
+    char some_text[TEXT_SZ];
+};
+
+int main() {
+    void *shared_memory = (void *)0;
+    struct shared_use_st *shared_stuff;
+    int shmid;
+
+    // Access shared memory
+    shmid = shmget((key_t)1234, sizeof(struct shared_use_st), 0666 | IPC_CREAT);
+    if (shmid == -1) {
+        fprintf(stderr, "shmget failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Attach to shared memory
+    shared_memory = shmat(shmid, (void *)0, 0);
+    if (shared_memory == (void *)-1) {
+        fprintf(stderr, "shmat failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Client attached at %p\n", shared_memory);
+    shared_stuff = (struct shared_use_st *)shared_memory;
+
+    int running = 1;
+    while (running) {
+        if (shared_stuff->written_by_you == 1) {
+            printf("Server wrote: %s", shared_stuff->some_text);
+            shared_stuff->written_by_you = 0;
+
+            if (strncmp(shared_stuff->some_text, "end", 3) == 0) {
+                running = 0;
+            }
+        }
+        sleep(1);
+    }
+
+    // Detach
+    if (shmdt(shared_memory) == -1) {
+        fprintf(stderr, "shmdt failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    exit(EXIT_SUCCESS);
 }
 ```
 ## OUTPUT
-![Screenshot 2025-05-13 004507](https://github.com/user-attachments/assets/24ede9c8-ebdd-47d0-97df-4c322e233f43)
+
+![Screenshot 2025-05-14 083859](https://github.com/user-attachments/assets/e20ab2ca-e4a5-49e6-a48d-2453a79ca1e0)
+
+![Screenshot 2025-05-14 083840](https://github.com/user-attachments/assets/c2fd1df4-5c70-4c04-a15b-58aa8bc10df7)
 
 
 ## RESULT:
