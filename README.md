@@ -149,10 +149,10 @@ int main() {
 }
 ```
 ## OUTPUT
+![Screenshot 2025-05-14 085147](https://github.com/user-attachments/assets/23d6a76d-9d3a-4b32-8bc5-909ae5e8401e)
 
-![Screenshot 2025-05-14 083859](https://github.com/user-attachments/assets/e20ab2ca-e4a5-49e6-a48d-2453a79ca1e0)
 
-![Screenshot 2025-05-14 083840](https://github.com/user-attachments/assets/c2fd1df4-5c70-4c04-a15b-58aa8bc10df7)
+![Screenshot 2025-05-14 085132](https://github.com/user-attachments/assets/529a50d4-4aa2-4084-b459-a768359cb95e)
 
 
 ## RESULT:
